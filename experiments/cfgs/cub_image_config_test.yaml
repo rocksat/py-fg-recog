@@ -1,0 +1,95 @@
+# Testing specific configuration
+RANDOM_SEED : 1.0
+
+SESSION_CONFIG : {
+  LOG_DEVICE_PLACEMENT : false,
+  PER_PROCESS_GPU_MEMORY_FRACTION : 0.9
+}
+#################################################
+# Metrics
+
+ACCURACY_AT_K_METRIC : [3, 5]
+
+# END: Metrics
+#################################################
+# Dataset Info
+
+NUM_CLASSES : 200
+
+NUM_TEST_EXAMPLES : 5794
+
+BATCH_SIZE : 32
+
+MODEL_NAME : 'inception_v3'
+
+# END: Dataset Info
+#################################################
+# Image Processing and Augmentation
+
+IMAGE_PROCESSING : {
+    INPUT_SIZE : 299,
+
+    # 1) First we extract regions from the image
+    REGION_TYPE : 'image', # one of 'image' or 'bbox'
+    BBOX_CFG : {
+        DO_EXPANSION : 0,
+        EXPANSION_CFG : {
+            WIDTH_EXPANSION : 2.0, # Expand the width by a factor of 2 (centrally)
+            HEIGHT_EXPANSION : 2.0, # Expand the height by a factor of 2 (centrally)
+        }
+    },
+    WHOLE_IMAGE_CFG: {},
+
+    # Fraction of time to take a random crop from the image, 0 is never, 1 is always
+    DO_RANDOM_CROP : 0,
+    RANDOM_CROP_CFG: {
+            MIN_AREA : 0.5, # between 0 and 1
+            MAX_AREA : 1.0, # between 0 and 1
+            MIN_ASPECT_RATIO : 0.7,
+            MAX_ASPECT_RATIO : 1.33,
+            MAX_ATTEMPTS : 100, # maximum number of attempts to satisfy the above constraints before returning the whole image
+    },
+
+    # Alternatively we can take a central crop from the image
+    DO_CENTRAL_CROP : 1, # Fraction of the time to take a central crop, 0 is never, 1 is always
+    CENTRAL_CROP_FRACTION : 0.875, # Between 0 and 1, fraction of size to crop
+
+    # 2) We need to resize the extracted regions to feed into the network.
+    MAINTAIN_ASPECT_RATIO : false,
+    # Avoid slower resize operations (bi-cubic, etc.)
+    RESIZE_FAST : true,
+
+    # 3) We can flip the regions
+    # Randomly flip the image left right, 50% chance of flipping
+    DO_RANDOM_FLIP_LEFT_RIGHT : false,
+
+    # 4) We can distort the colors of the regions
+    # Color distortion
+    # The fraction of time to distort the color, 0 is never, 1 is always
+    DO_COLOR_DISTORTION : 0,
+    # Avoids slower ops (random_hue and random_contrast)
+    COLOR_DISTORT_FAST : false
+}
+
+# END: Image Processing and Augmentation
+#################################################
+# Queues
+#
+# Number of threads to populate the batch queue
+NUM_INPUT_THREADS : 2
+# Should the data be shuffled?
+SHUFFLE_QUEUE : false
+# Capacity of the queue producing batched examples
+QUEUE_CAPACITY : 1000
+# Minimum size of the queue to ensure good shuffling
+QUEUE_MIN :  200
+
+# END: Queues
+#################################################
+# Regularization
+#
+# The decay to use for the moving average. If 0, then moving average is not computed
+MOVING_AVERAGE_DECAY : 0.9999
+
+# End: Regularization
+#################################################

@@ -1,0 +1,61 @@
+export DATASET_DIR=/media/drive2/tensorflow_datasets/cub/with_200_val_split
+export EXPERIMENT_DIR=/media/drive2/tensorflow_experiments/ebird/cub_image_experiment
+export IMAGENET_PRETRAINED_MODEL=/media/drive3/tensorflow_models/inception_v3.ckpt
+
+# Visualize the inputs to the network
+CUDA_VISIBLE_DEVICES=1 python visualize_train_inputs.py \
+--tfrecords $DATASET_DIR/train* \
+--config $EXPERIMENT_DIR/config_train.yaml \
+--text_labels
+
+
+# Warm up training phase
+CUDA_VISIBLE_DEVICES=0 python train.py \
+--tfrecords $DATASET_DIR/train* \
+--logdir $EXPERIMENT_DIR/logdir/finetune \
+--config $EXPERIMENT_DIR/config_train.yaml \
+--pretrained_model $IMAGENET_PRETRAINED_MODEL \
+--trainable_scopes InceptionV3/Logits InceptionV3/AuxLogits \
+--checkpoint_exclude_scopes InceptionV3/Logits InceptionV3/AuxLogits \
+--learning_rate_decay_type fixed \
+--lr 0.01
+
+
+# Evaluate the finetuned model with the validation data
+CUDA_VISIBLE_DEVICES=1 python test.py \
+--tfrecords $DATASET_DIR/val* \
+--save_dir $EXPERIMENT_DIR/logdir/finetune/val_summaries \
+--checkpoint_path $EXPERIMENT_DIR/logdir/finetune \
+--config $EXPERIMENT_DIR/config_test.yaml \
+--batch_size 20 \
+--batches 30 \
+--eval_interval_secs 180 
+
+
+# Train all of the weigths, using the finetuned model as a starting point
+CUDA_VISIBLE_DEVICES=0 python train.py \
+--tfrecords $DATASET_DIR/train* \
+--logdir $EXPERIMENT_DIR/logdir \
+--config $EXPERIMENT_DIR/config_train.yaml \
+--pretrained_model $EXPERIMENT_DIR/logdir/finetune
+
+
+# Evaluate the model using the validation data
+CUDA_VISIBLE_DEVICES=1 python test.py \
+--tfrecords $DATASET_DIR/val* \
+--save_dir $EXPERIMENT_DIR/logdir/val_summaries \
+--checkpoint_path $EXPERIMENT_DIR/logdir \
+--config $EXPERIMENT_DIR/config_test.yaml \
+--batch_size 20 \
+--batches 30 \
+--eval_interval_secs 180 
+
+
+# Evaluate the model using the test data
+CUDA_VISIBLE_DEVICES=1 python test.py \
+--tfrecords $DATASET_DIR/test* \
+--save_dir $EXPERIMENT_DIR/logdir/test_summaries \
+--checkpoint_path $EXPERIMENT_DIR/logdir \
+--config $EXPERIMENT_DIR/config_test.yaml \
+--batch_size 1 \
+--batches 5794
